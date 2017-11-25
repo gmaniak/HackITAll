@@ -20,9 +20,9 @@ public class MapFrame extends javax.swing.JFrame {
     private String source;
     private String destination;
     private ArrayList<String> waypoints;
-    double lat = 44.439663;
-    double lon = 26.096306;
-    int zoom = 12;
+    double lat;
+    double lon;
+    int zoom;
 
     /**
      * Creates new form NewJFrame
@@ -123,8 +123,10 @@ public class MapFrame extends javax.swing.JFrame {
         tokens = response.toString().split("location");
         String locLat, locLon;
         try {
-            locLat = tokens[1].substring(28, 38).replaceAll("\\s+", "");
-            locLon = tokens[1].substring(62, 72).replaceAll("\\s+", "");
+            String[] tokens2 = tokens[1].split(":");
+            locLat = tokens2[2].split(",")[0].replaceAll("\\s", "");
+            locLon = tokens2[3].split("}")[0].replaceAll("\\s", "");
+            
             return new String[] {locLat, locLon};
         }
         catch (Exception e){
@@ -150,30 +152,107 @@ public class MapFrame extends javax.swing.JFrame {
             Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        String markers = "&markers=color:red%7Clabel:S%7C" + sourceCoord[0] + "," + sourceCoord[1] + 
+        String markers;
+        int no;
+        double maxLat = Double.MIN_VALUE;
+        double maxLon = Double.MIN_VALUE;
+        double minLat = Double.MAX_VALUE;
+        double minLon = Double.MAX_VALUE;
+        
+        if (sourceCoord != null && destCoord != null) {
+            markers = "&markers=color:red%7Clabel:S%7C" + sourceCoord[0] + "," + sourceCoord[1] + 
                         "&markers=color:red%7Clabel:D%7C" + destCoord[0] + "," + destCoord[1];
-        
-        for (int i = 0; i < waypointsCoord.size(); i++) {
-            markers += "&markers=color:red%7Clabel:W%7C" + waypointsCoord.get(i)[0] + "," + waypointsCoord.get(i)[1];
-        }
-        
-        try {
-            url = new URL("https://maps.googleapis.com/maps/api/staticmap?"
-                    + "center=" + lat + "," + lon + "&"
-                    + "size=700x700&maptype=roadmap&"
-                    + "zoom=12&" + markers
-                    + "&key=AIzaSyBPdzxz3LQzNkM5u3Fcn-4wvdxOWFEDK9g");
-        } catch (MalformedURLException ex) {
-            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            
+            lat = Double.parseDouble(sourceCoord[0]) + Double.parseDouble(destCoord[0]);
+            lon = Double.parseDouble(sourceCoord[1]) + Double.parseDouble(destCoord[1]);
+            no = 2;
+            
+            if (maxLat < Double.parseDouble(sourceCoord[0])) {
+                maxLat = Double.parseDouble(sourceCoord[0]);
+            }
+            
+            if (maxLon < Double.parseDouble(sourceCoord[1])) {
+                maxLon = Double.parseDouble(sourceCoord[1]);
+            }
+                        
+            if (maxLat < Double.parseDouble(destCoord[0])) {
+                maxLat = Double.parseDouble(destCoord[0]);
+            }
+                                    
+            if (maxLon < Double.parseDouble(destCoord[1])) {
+                maxLon = Double.parseDouble(destCoord[1]);
+            }
+            
+            if (minLat > Double.parseDouble(sourceCoord[0])) {
+                minLat = Double.parseDouble(sourceCoord[0]);
+            }
+            
+            if (minLon > Double.parseDouble(sourceCoord[1])) {
+                minLon = Double.parseDouble(sourceCoord[1]);
+            }
+                        
+            if (minLat > Double.parseDouble(destCoord[0])) {
+                minLat = Double.parseDouble(destCoord[0]);
+            }
+                                    
+            if (minLon > Double.parseDouble(destCoord[1])) {
+                minLon = Double.parseDouble(destCoord[1]);
+            }
+            
+            for (int i = 0; i < waypointsCoord.size(); i++) {
+                markers += "&markers=color:red%7Clabel:W%7C" + waypointsCoord.get(i)[0] + "," + waypointsCoord.get(i)[1];
+                lat += Double.parseDouble(waypointsCoord.get(i)[0]);
+                lon += Double.parseDouble(waypointsCoord.get(i)[1]);
+                no++;
+                
+                if (maxLat < Double.parseDouble(waypointsCoord.get(i)[0])) {
+                    maxLat = Double.parseDouble(waypointsCoord.get(i)[0]);
+                }
 
-        try {
-            icon = new ImageIcon(ImageIO.read(url));
-        } catch (IOException ex) {
-            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        jLabel1.setIcon(icon);
+                if (maxLon < Double.parseDouble(waypointsCoord.get(i)[1])) {
+                    maxLon = Double.parseDouble(waypointsCoord.get(i)[1]);
+                }
 
+                if (minLat > Double.parseDouble(waypointsCoord.get(i)[0])) {
+                    minLat = Double.parseDouble(waypointsCoord.get(i)[0]);
+                }
+
+                if (minLon > Double.parseDouble(waypointsCoord.get(i)[1])) {
+                    minLon = Double.parseDouble(waypointsCoord.get(i)[1]);
+                }
+            }
+
+            lat /= no;
+            lon /= no;
+            
+            
+            if (maxLat - minLat >= 0.05 || maxLon - minLon >= 0.05) {
+                zoom = 12;
+            }
+            else if (maxLat - minLat >= 0.01 || maxLon - minLon >= 0.01) {
+                zoom = 13;
+            }
+            else {
+                zoom = 14;
+            }
+            System.out.println(maxLat + " " + minLat + " " + maxLon + " " + minLon + " " + zoom);
+            try {
+                url = new URL("https://maps.googleapis.com/maps/api/staticmap?"
+                        + "center=" + lat + "," + lon + "&"
+                        + "size=700x700&maptype=roadmap&"
+                        + "zoom=" + zoom + "&" + markers
+                        + "&key=AIzaSyBPdzxz3LQzNkM5u3Fcn-4wvdxOWFEDK9g");
+            } catch (MalformedURLException ex) {
+                Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+            try {
+                icon = new ImageIcon(ImageIO.read(url));
+            } catch (IOException ex) {
+                Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            jLabel1.setIcon(icon);
+        }
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel jLabel1;
