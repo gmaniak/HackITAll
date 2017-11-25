@@ -1,11 +1,17 @@
-
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.reflect.Array;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
+import javax.swing.JOptionPane;
 
 public class MapFrame extends javax.swing.JFrame {
 
@@ -13,7 +19,7 @@ public class MapFrame extends javax.swing.JFrame {
     private ImageIcon icon;
     private String source;
     private String destination;
-    private String[] waypoints;
+    private ArrayList<String> waypoints;
     double lat = 44.439663;
     double lon = 26.096306;
     int zoom = 12;
@@ -25,7 +31,7 @@ public class MapFrame extends javax.swing.JFrame {
      * @param destination
      * @param waypoints
      */
-    public MapFrame(String source, String destination, String[] waypoints) {
+    public MapFrame(String source, String destination, ArrayList<String> waypoints) {
         initComponents();
         this.source = source;
         this.destination = destination;
@@ -45,45 +51,124 @@ public class MapFrame extends javax.swing.JFrame {
         jLabel1 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setPreferredSize(new java.awt.Dimension(1280, 760));
+        setPreferredSize(new java.awt.Dimension(760, 760));
         setResizable(false);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(139, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(51, 51, 51)
                 .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 1131, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(36, 36, 36))
+                .addContainerGap(124, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addGap(0, 60, Short.MAX_VALUE)
-                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 726, javax.swing.GroupLayout.PREFERRED_SIZE))
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 726, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(47, Short.MAX_VALUE))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void createMap() {
+    private String[] getCoord(String location) throws IOException {
+        
+        String transf = location.replace(" ", "+");
+        URL url1 = null;
+        
+        try { 
+            url1 = new URL("https://maps.googleapis.com/maps/api/geocode/json" +
+                    "?address=" + transf + "&key=AIzaSyDQKLqlmunVm8LGlZIiGsDlFZGcMgJ_4wI");
+        } catch (MalformedURLException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        HttpURLConnection con = null;
+        try {
+            con = (HttpURLConnection) url1.openConnection();
+        } catch (IOException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        try {
+            con.setRequestMethod("GET");
+        } catch (ProtocolException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
-        lat = 44.439663;
-        lon = 26.096306;
+        BufferedReader in = null;
+        try {
+            in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+        } catch (IOException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        String inputLine; 
+        StringBuilder response = new StringBuilder();
+
+        try {
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        if (in != null) {
+            in.close();
+        }
+        
+        String[] tokens = new String[3];
+        tokens = response.toString().split("location");
+        String locLat, locLon;
+        try {
+            locLat = tokens[1].substring(28, 38).replaceAll("\\s+", "");
+            locLon = tokens[1].substring(62, 72).replaceAll("\\s+", "");
+            return new String[] {locLat, locLon};
+        }
+        catch (Exception e){
+            JOptionPane.showMessageDialog(this, "Invalid location(s)");
+        }
+        
+        return null;
+    }
+    
+    private void createMap() {
+        
+        String[] sourceCoord = null, destCoord = null;
+        ArrayList<String[]> waypointsCoord = new ArrayList<String[]>();
+        
+        try {
+            sourceCoord = getCoord(source);
+            destCoord = getCoord(destination);
+            
+            for (String s : waypoints) {
+                waypointsCoord.add(getCoord(s)); 
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        String markers = "&markers=color:red%7Clabel:S%7C" + sourceCoord[0] + "," + sourceCoord[1] + 
+                        "&markers=color:red%7Clabel:D%7C" + destCoord[0] + "," + destCoord[1];
+        
+        for (int i = 0; i < waypointsCoord.size(); i++) {
+            markers += "&markers=color:red%7Clabel:W%7C" + waypointsCoord.get(i)[0] + "," + waypointsCoord.get(i)[1];
+        }
         
         try {
             url = new URL("https://maps.googleapis.com/maps/api/staticmap?"
                     + "center=" + lat + "," + lon + "&"
-                    + "zoom=" + zoom + "&"
-                    + "size=800x500&maptype=roadmap&"
-                    + "key=AIzaSyBPdzxz3LQzNkM5u3Fcn-4wvdxOWFEDK9g");
+                    + "size=700x700&maptype=roadmap&"
+                    + "zoom=12&" + markers
+                    + "&key=AIzaSyBPdzxz3LQzNkM5u3Fcn-4wvdxOWFEDK9g");
         } catch (MalformedURLException ex) {
             Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         try {
-            icon = new ImageIcon(ImageIO.read(url).getScaledInstance(1000, 600, java.awt.Image.SCALE_SMOOTH));
+            icon = new ImageIcon(ImageIO.read(url));
         } catch (IOException ex) {
             Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
         }

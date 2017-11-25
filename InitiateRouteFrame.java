@@ -1,4 +1,5 @@
 
+import java.util.ArrayList;
 import javax.swing.JTextField;
 
 /*
@@ -121,11 +122,19 @@ public class InitiateRouteFrame extends javax.swing.JFrame {
         String source = jTextField1.getText();
         String destination = jTextField2.getText();
         
-        String[] waypoints = new String[4];
-        waypoints[0] = jTextField4.getText();
-        waypoints[0] = jTextField5.getText();
-        waypoints[0] = jTextField6.getText();       
-        waypoints[0] = jTextField7.getText();
+        ArrayList<String> waypoints = new ArrayList<String>();
+        if (jTextField4.getText().length() > 0) {
+            waypoints.add(jTextField4.getText());
+        }
+        if (jTextField5.getText().length() > 0) {
+            waypoints.add(jTextField5.getText());
+        }        
+        if (jTextField6.getText().length() > 0) {
+            waypoints.add(jTextField6.getText());
+        }        
+        if (jTextField7.getText().length() > 0) {
+            waypoints.add(jTextField7.getText());
+        }
         
         new MapFrame(source, destination, waypoints).setVisible(true);
         
