@@ -14,7 +14,10 @@ public class Hackathon {
 
     public static void main(String[] args) throws MalformedURLException, IOException {
         // TODO code application logic here
-        URL url = new URL("https://maps.googleapis.com/maps/api/staticmap?center=Australia&size=640x400&style=element:labels|visibility:off&style=element:geometry.stroke|visibility:off&style=feature:landscape|element:geometry|saturation:-100&style=feature:water|saturation:-100|invert_lightness:true&key=AIzaSyBPdzxz3LQzNkM5u3Fcn-4wvdxOWFEDK9g");
+        URL url = new URL("https://maps.googleapis.com/maps/api/staticmap?center=Bucharest&zoom=13&size=1920x1600&maptype=roadmap" +
+"&markers=color:blue%7Clabel:S%7C40.702147,-74.015794&markers=color:green%7Clabel:G%7C40.711614,-74.012318" +
+"&markers=color:red%7Clabel:C%7C40.718217,-73.998284" +
+"&key=AIzaSyBPdzxz3LQzNkM5u3Fcn-4wvdxOWFEDK9g");
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
         con.setRequestMethod("GET");
 
