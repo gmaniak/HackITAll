@@ -9,7 +9,8 @@ public class Route {
     public Route(String overview_polyline, double preferenceFactor,int time) {
         steps = new ArrayList<>();
         this.preferenceFactor = preferenceFactor;
-        this.overview_polyline = overview_polyline.replaceAll("\\\\","\\");
+        System.out.println(overview_polyline);
+        this.overview_polyline = overview_polyline.replace("\\\\+","\\");
         this.time = time;
 
     }

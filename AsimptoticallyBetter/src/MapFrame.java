@@ -116,7 +116,7 @@ public class MapFrame extends javax.swing.JFrame {
                 double lonCoord = minLon + j / 5 * lonRatio;
                 
                 try {
-                    resource = new URL ("https://api.breezometer.com/baqi/?lat="+ latCoord + "&lon=" + lonCoord + "&key=b676f49379844ee7b9856be17bdc5b59 ");
+                    resource = new URL ("https://api.breezometer.com/baqi/?lat="+ latCoord + "&lon=" + lonCoord + "&key=68b820f59c83447abd737979c4d6acb4 ");
                 } catch (MalformedURLException ex) {
                     Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -351,6 +351,7 @@ public class MapFrame extends javax.swing.JFrame {
             //String polyline = getRoute();
             String polyline = routeList.get(0).getOverview_polyline();
             System.out.println(polyline);
+            System.out.println(routeList.size());
             
             try {
                 url = new URL("https://maps.googleapis.com/maps/api/staticmap?"
@@ -486,6 +487,7 @@ public class MapFrame extends javax.swing.JFrame {
             resource = new URL("https://maps.googleapis.com/maps/api/directions/json?"
                     + "origin=" + source.replaceAll(" ", "+")
                     + "&destination=" + destination.replaceAll(" ", "+")
+                    + "&alternatives=true"
                     + "&key=AIzaSyDBmJStlugUg1zhRvaVIKYdDNGYjeE0yDE ");
         } catch (MalformedURLException ex) {
             Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
