@@ -1,3 +1,5 @@
+import org.json.JSONObject;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
@@ -338,12 +340,16 @@ public class MapFrame extends javax.swing.JFrame {
             else {
                 zoom = 14;
             }
+
+            //Compute Route
+            String polyline = getRoute();
             
             try {
                 url = new URL("https://maps.googleapis.com/maps/api/staticmap?"
                         + "center=" + lat + "," + lon + "&"
                         + "size=700x700&maptype=roadmap&"
-                        + "zoom=" + zoom + "&" + markers
+                        + "path=enc:"+polyline
+                        + "&zoom=" + zoom + "&" + markers
                         + "&key=AIzaSyBPdzxz3LQzNkM5u3Fcn-4wvdxOWFEDK9g");
             } catch (MalformedURLException ex) {
                 Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
@@ -362,7 +368,7 @@ public class MapFrame extends javax.swing.JFrame {
     }
 
 
-    void addPolutionOverlay(){
+    private void addPolutionOverlay(){
         BufferedImage img = new BufferedImage(image.getWidth(null),image.getHeight(null),BufferedImage.TYPE_INT_ARGB);
 
         Graphics2D bGr = img.createGraphics();
@@ -394,10 +400,10 @@ public class MapFrame extends javax.swing.JFrame {
                 //Compute Color
                 if (pollutionMatrix[i][j] <= midP) {
                     percentage = (pollutionMatrix[i][j] - minP) / (midP - minP);
-                    pointColor = new Color((int) (255 * percentage), 255, 0, 150);
+                    pointColor = new Color((int) (255 * percentage), 255, 0, 75);
                 } else {
                     percentage = (pollutionMatrix[i][j] - midP) / (maxP - midP);
-                    pointColor = new Color(255, (int) (255 * percentage), 0, 150);
+                    pointColor = new Color(255, (int) (255 * percentage), 0, 75);
                 }
 
                 bGr.setColor(pointColor);
@@ -407,6 +413,112 @@ public class MapFrame extends javax.swing.JFrame {
 
         bGr.dispose();
         jLabel1.setIcon(new ImageIcon(img));
+    }
+
+    private String getRoute() {
+
+        URL resource = null;
+        BufferedReader in = null;
+
+        //Get Directions
+        try {
+            resource = new URL("https://maps.googleapis.com/maps/api/directions/json?"
+                    + "origin=" + source.replaceAll(" ", "+")
+                    + "&destination=" + destination.replaceAll(" ", "+")
+                    + "&key=AIzaSyDBmJStlugUg1zhRvaVIKYdDNGYjeE0yDE ");
+        } catch (MalformedURLException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        HttpURLConnection googleDirections = null;
+        try {
+            googleDirections = (HttpURLConnection) resource.openConnection();
+        } catch (IOException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        try {
+            googleDirections.setRequestMethod("GET");
+        } catch (ProtocolException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        try {
+            in = new BufferedReader(new InputStreamReader(googleDirections.getInputStream()));
+        } catch (IOException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        String inputLine;
+        StringBuilder response = new StringBuilder();
+
+        try {
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        String result = response.substring(response.indexOf("overview_polyline"));
+        result = result.substring(result.indexOf("{"));
+        result = result.substring(result.indexOf(":"));
+        result = result.substring(result.indexOf('"') + 1 );
+        result = result.substring(0,result.indexOf('"'));
+        result= result.replace("\\\\", "\\");
+
+        return result;
+    }
+
+    String getAllRoutes(){
+        URL resource = null;
+        BufferedReader in = null;
+
+        //Get Directions
+        try {
+            resource = new URL("https://maps.googleapis.com/maps/api/directions/json?"
+                    + "origin=" + source.replaceAll(" ", "+")
+                    + "&destination=" + destination.replaceAll(" ", "+")
+                    + "&key=AIzaSyDBmJStlugUg1zhRvaVIKYdDNGYjeE0yDE ");
+        } catch (MalformedURLException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        HttpURLConnection googleDirections = null;
+        try {
+            googleDirections = (HttpURLConnection) resource.openConnection();
+        } catch (IOException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        try {
+            googleDirections.setRequestMethod("GET");
+        } catch (ProtocolException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        try {
+            in = new BufferedReader(new InputStreamReader(googleDirections.getInputStream()));
+        } catch (IOException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        String inputLine;
+        StringBuilder response = new StringBuilder();
+
+        try {
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        JSONObject jsonObj = new JSONObject();
+
+
+
+
+
+        return null;
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
