@@ -1,7 +1,7 @@
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
@@ -20,9 +20,11 @@ public class MapFrame extends javax.swing.JFrame {
     private String source;
     private String destination;
     private ArrayList<String> waypoints;
-    double lat;
-    double lon;
-    int zoom;
+    private double lat;
+    private double lon;
+    private int zoom;
+    private double[][] pollutionMatrix;
+    private String polyLine;
 
     /**
      * Creates new form NewJFrame
@@ -33,10 +35,21 @@ public class MapFrame extends javax.swing.JFrame {
      */
     public MapFrame(String source, String destination, ArrayList<String> waypoints) {
         initComponents();
-        this.source = source;
-        this.destination = destination;
-        this.waypoints = waypoints;
+        this.source = source.replace(" ", "+");
+        this.destination = destination.replace(" ", "+");
+        this.waypoints = new ArrayList<String>();
+        
+        for (String s : waypoints) {
+            String aux = s.replace(" ", "+");
+            this.waypoints.add(aux);
+        }
+        this.polyLine = getPolyLine();
         createMap();
+    /*    try {
+            this.pollutionMatrix = createMatrix();
+        } catch (IOException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }*/
     }
 
     /**
@@ -74,25 +87,120 @@ public class MapFrame extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private double[][] createMatrix() throws IOException {
+
+        double minLat = 44.36476;
+        double maxLat = 44.523937;
+        double minLon = 25.971842;
+        double maxLon = 26.249818;
+
+        double lonRatio = (maxLon - minLon) / 6;
+        double latRatio = (maxLat - minLat) / 6;
+
+        double[][] matrix = new double[31][31];
+        double[][] finMatrix = new double[31][31];
+        URL resource = null;
+        BufferedReader in = null;
+        StringBuilder response;
+
+        for (int i = 0; i < 31; i += 5) {
+
+            double latCoord = minLat + i / 5 * latRatio;
+
+            for (int j = 0; j < 31; j += 5) {
+
+                double lonCoord = minLon + j / 5 * lonRatio;
+
+                try {
+                    resource = new URL("https://api.breezometer.com/baqi/?lat=" + latCoord + "&lon=" + lonCoord + "&key=141bc4abd9ec4901b9619d9b34325e81 ");
+                } catch (MalformedURLException ex) {
+                    Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+                HttpURLConnection conBreeze = null;
+                try {
+                    conBreeze = (HttpURLConnection) resource.openConnection();
+                } catch (IOException ex) {
+                    Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                try {
+                    conBreeze.setRequestMethod("GET");
+                } catch (ProtocolException ex) {
+                    Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+                try {
+                    in = new BufferedReader(new InputStreamReader(conBreeze.getInputStream()));
+                } catch (IOException ex) {
+                    Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                response = new StringBuilder();
+                String inputLine;
+                try {
+                    while ((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+                } catch (IOException ex) {
+                    Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                in.close();
+
+                String[] tokensB = new String[3];
+                tokensB = response.toString().split("\"breezometer_aqi\":");
+                String quality = tokensB[1].split(",")[0].replaceAll("\\s", "");
+
+                matrix[i][j] = Integer.parseInt(quality);
+            }
+        }
+
+        for (int i = 0; i < 26; i += 5) {
+            for (int j = 0; j < 26; j += 5) {
+                for (int k = 1; k < 5; k++) {
+                    for (int l = 1; l < 5; l++) {
+                        matrix[i + k][j + l] = matrix[i][j] * (5 - k) * (5 - l) / 25
+                                + matrix[i + 5][j] * l * (5 - k) / 25
+                                + matrix[i][j + 5] * (5 - l) * k / 25
+                                + matrix[i + 5][j + 5] * (k * l) / 25;
+                    }
+
+                    matrix[i + k][j] = matrix[i][j] * (5 - k) / 5 + matrix[i + 5][j] * k / 5;
+                    matrix[i][j + k] = matrix[i][j] * (5 - k) / 5 + matrix[i][j + 5] * k / 5;
+                }
+            }
+        }
+        for (int i = 0; i < 26; i += 5) {
+            for (int l = 1; l < 5; l++) {
+                matrix[30][i + l] = matrix[30][i] * (5 - l) / 5 + matrix[30][i + 5] * l / 5;
+                matrix[i + l][30] = matrix[i][30] * (5 - l) / 5 + matrix[i + 5][30] * l / 5;
+            }
+        }
+
+        for (int i = 0; i < 31; i++) {
+            finMatrix[i] = matrix[30 - i];
+        }
+
+        return finMatrix;
+    }
+
     private String[] getCoord(String location) throws IOException {
-        
+
         String transf = location.replace(" ", "+");
         URL url1 = null;
-        
-        try { 
-            url1 = new URL("https://maps.googleapis.com/maps/api/geocode/json" +
-                    "?address=" + transf + "&key=AIzaSyDQKLqlmunVm8LGlZIiGsDlFZGcMgJ_4wI");
+
+        try {
+            url1 = new URL("https://maps.googleapis.com/maps/api/geocode/json"
+                    + "?address=" + transf + "&key=AIzaSyDQKLqlmunVm8LGlZIiGsDlFZGcMgJ_4wI");
         } catch (MalformedURLException ex) {
             Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
         HttpURLConnection con = null;
         try {
             con = (HttpURLConnection) url1.openConnection();
         } catch (IOException ex) {
             Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
         try {
             con.setRequestMethod("GET");
         } catch (ProtocolException ex) {
@@ -105,7 +213,7 @@ public class MapFrame extends javax.swing.JFrame {
         } catch (IOException ex) {
             Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
         }
-        String inputLine; 
+        String inputLine;
         StringBuilder response = new StringBuilder();
 
         try {
@@ -118,7 +226,7 @@ public class MapFrame extends javax.swing.JFrame {
         if (in != null) {
             in.close();
         }
-        
+
         String[] tokens = new String[3];
         tokens = response.toString().split("location");
         String locLat, locLon;
@@ -126,85 +234,145 @@ public class MapFrame extends javax.swing.JFrame {
             String[] tokens2 = tokens[1].split(":");
             locLat = tokens2[2].split(",")[0].replaceAll("\\s", "");
             locLon = tokens2[3].split("}")[0].replaceAll("\\s", "");
-            
-            return new String[] {locLat, locLon};
-        }
-        catch (Exception e){
+
+            return new String[]{locLat, locLon};
+        } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Invalid location(s)");
         }
-        
+
         return null;
     }
+
+    private String getPolyLine() {
+        
+        String polyline = null;
+        String req = "https://maps.googleapis.com/maps/api/directions/json?"
+                + "origin=" + source + "&destination=" + destination;
+                
+        if (waypoints.isEmpty() == false) {
+            req += "&waypoints=";
     
-    private void createMap() {
-        
-        String[] sourceCoord = null, destCoord = null;
-        ArrayList<String[]> waypointsCoord = new ArrayList<String[]>();
-        
-        try {
-            sourceCoord = getCoord(source);
-            destCoord = getCoord(destination);
-            
-            for (String s : waypoints) {
-                waypointsCoord.add(getCoord(s)); 
+            for (int i = 0; i < waypoints.size(); i++) {
+                req += waypoints.get(i);
+
+                if (i < waypoints.size() - 1) {
+                    req += "|";
+                }
             }
+        }
+        req += "&key=AIzaSyAxOzdyQ21cKWSywxCDDVZ7TZljwnAAq5Q";
+
+        try {
+            URL request = new URL(req);
+            HttpURLConnection con = (HttpURLConnection) request.openConnection();
+            con.setRequestMethod("GET");
+            
+            BufferedReader in = null;
+            try {
+                in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+            } catch (IOException ex) {
+                Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            String inputLine;
+            StringBuilder response = new StringBuilder();
+
+            try {
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                    System.out.println(inputLine);
+                }
+            } catch (IOException ex) {
+                Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            if (in != null) {
+                in.close();
+            }
+            System.out.println(req);
+            String str = response.toString().split("\"overview_polyline\"")[1];
+            String str2 = str.split("\"points\"")[1];
+            polyline = str2.split(" ")[2].split("\"")[1];
+            
+        } catch (MalformedURLException ex) {
+            Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
             Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
         }
         
+        return polyline;
+    }
+
+    private void createMap() {
+
+        String[] sourceCoord = null, destCoord = null;
+        ArrayList<String[]> waypointsCoord = new ArrayList<String[]>();
+
+        try {
+            sourceCoord = getCoord(source);
+            destCoord = getCoord(destination);
+
+            for (String s : waypoints) {
+                waypointsCoord.add(getCoord(s));
+
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(MapFrame.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+
         String markers;
         int no;
         double maxLat = Double.MIN_VALUE;
         double maxLon = Double.MIN_VALUE;
         double minLat = Double.MAX_VALUE;
         double minLon = Double.MAX_VALUE;
-        
+
         if (sourceCoord != null && destCoord != null) {
-            markers = "&markers=color:red%7Clabel:S%7C" + sourceCoord[0] + "," + sourceCoord[1] + 
-                        "&markers=color:red%7Clabel:D%7C" + destCoord[0] + "," + destCoord[1];
-            
+            markers = "&markers=color:red%7Clabel:S%7C" + sourceCoord[0] + "," + sourceCoord[1]
+                    + "&markers=color:red%7Clabel:D%7C" + destCoord[0] + "," + destCoord[1];
+
             lat = Double.parseDouble(sourceCoord[0]) + Double.parseDouble(destCoord[0]);
             lon = Double.parseDouble(sourceCoord[1]) + Double.parseDouble(destCoord[1]);
             no = 2;
-            
+
             if (maxLat < Double.parseDouble(sourceCoord[0])) {
                 maxLat = Double.parseDouble(sourceCoord[0]);
             }
-            
+
             if (maxLon < Double.parseDouble(sourceCoord[1])) {
                 maxLon = Double.parseDouble(sourceCoord[1]);
             }
-                        
+
             if (maxLat < Double.parseDouble(destCoord[0])) {
                 maxLat = Double.parseDouble(destCoord[0]);
             }
-                                    
+
             if (maxLon < Double.parseDouble(destCoord[1])) {
                 maxLon = Double.parseDouble(destCoord[1]);
             }
-            
+
             if (minLat > Double.parseDouble(sourceCoord[0])) {
                 minLat = Double.parseDouble(sourceCoord[0]);
             }
-            
+
             if (minLon > Double.parseDouble(sourceCoord[1])) {
                 minLon = Double.parseDouble(sourceCoord[1]);
             }
-                        
+
             if (minLat > Double.parseDouble(destCoord[0])) {
                 minLat = Double.parseDouble(destCoord[0]);
             }
-                                    
+
             if (minLon > Double.parseDouble(destCoord[1])) {
                 minLon = Double.parseDouble(destCoord[1]);
             }
-            
+
             for (int i = 0; i < waypointsCoord.size(); i++) {
                 markers += "&markers=color:red%7Clabel:W%7C" + waypointsCoord.get(i)[0] + "," + waypointsCoord.get(i)[1];
                 lat += Double.parseDouble(waypointsCoord.get(i)[0]);
                 lon += Double.parseDouble(waypointsCoord.get(i)[1]);
                 no++;
-                
+
                 if (maxLat < Double.parseDouble(waypointsCoord.get(i)[0])) {
                     maxLat = Double.parseDouble(waypointsCoord.get(i)[0]);
                 }
@@ -224,32 +392,34 @@ public class MapFrame extends javax.swing.JFrame {
 
             lat /= no;
             lon /= no;
-            
-            
+
             if (maxLat - minLat >= 0.05 || maxLon - minLon >= 0.05) {
                 zoom = 12;
-            }
-            else if (maxLat - minLat >= 0.01 || maxLon - minLon >= 0.01) {
+            } else if (maxLat - minLat >= 0.01 || maxLon - minLon >= 0.01) {
                 zoom = 13;
-            }
-            else {
+            } else {
                 zoom = 14;
             }
-            System.out.println(maxLat + " " + minLat + " " + maxLon + " " + minLon + " " + zoom);
+
             try {
                 url = new URL("https://maps.googleapis.com/maps/api/staticmap?"
                         + "center=" + lat + "," + lon + "&"
                         + "size=700x700&maptype=roadmap&"
                         + "zoom=" + zoom + "&" + markers
+                        + "&path=weight:3%7color:blue%7Cenc:" + polyLine
                         + "&key=AIzaSyBPdzxz3LQzNkM5u3Fcn-4wvdxOWFEDK9g");
+
             } catch (MalformedURLException ex) {
-                Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(MapFrame.class
+                        .getName()).log(Level.SEVERE, null, ex);
             }
 
             try {
                 icon = new ImageIcon(ImageIO.read(url));
+
             } catch (IOException ex) {
-                Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(MapFrame.class
+                        .getName()).log(Level.SEVERE, null, ex);
             }
             jLabel1.setIcon(icon);
         }
