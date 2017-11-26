@@ -17,9 +17,6 @@ public class Polyline {
         pointList = new ArrayList<>();
     }
 
-    void removeLastPoint(){
-        pointList.remove(pointList.size()-1);
-    }
 
     String getPolyline(){
         double currentLatitude,currentLongitude;
