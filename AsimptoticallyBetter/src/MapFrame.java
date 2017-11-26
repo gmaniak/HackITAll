@@ -32,6 +32,12 @@ public class MapFrame extends javax.swing.JFrame {
     private double[][] pollutionMatrix;
     private Image image;
     private ArrayList<Route> routeList;
+    private final double minLat = 44.365097;
+    private final double maxLat = 44.523937;
+    private final double minLon = 25.937004;
+    private final double maxLon = 26.249818;
+    private final double lonRatio = (maxLon - minLon) / 6;
+    private final double latRatio = (maxLat - minLat) / 6;
 
     /**
      * Creates new form NewJFrame
@@ -92,15 +98,7 @@ public class MapFrame extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private double[][] createMatrix() throws IOException {
-        
-        double minLat = 44.36476;
-        double maxLat = 44.523937;
-        double minLon = 25.971842;
-        double maxLon = 26.249818;
-        
-        double lonRatio = (maxLon - minLon) / 6;
-        double latRatio = (maxLat - minLat) / 6;
-        
+
         double[][] matrix = new double[31][31];
         double[][] finMatrix = new double[31][31];
         URL resource = null;
@@ -116,7 +114,7 @@ public class MapFrame extends javax.swing.JFrame {
                 double lonCoord = minLon + j / 5 * lonRatio;
                 
                 try {
-                    resource = new URL ("https://api.breezometer.com/baqi/?lat="+ latCoord + "&lon=" + lonCoord + "&key=68b820f59c83447abd737979c4d6acb4 ");
+                    resource = new URL ("https://api.breezometer.com/baqi/?lat="+ latCoord + "&lon=" + lonCoord + "&key=821db3619dc348728b226a330ccf220e ");
                 } catch (MalformedURLException ex) {
                     Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -182,6 +180,7 @@ public class MapFrame extends javax.swing.JFrame {
         for (int i = 0; i < 31; i++) {
             finMatrix[i] = matrix[30 - i];
         }
+
         return finMatrix;
     }
     private String[] getCoord(String location) throws IOException {
@@ -350,8 +349,7 @@ public class MapFrame extends javax.swing.JFrame {
             this.getAllRoutes();
             //String polyline = getRoute();
             String polyline = routeList.get(0).getOverview_polyline();
-            System.out.println(polyline);
-            System.out.println(routeList.size());
+
             
             try {
                 url = new URL("https://maps.googleapis.com/maps/api/staticmap?"
@@ -409,10 +407,10 @@ public class MapFrame extends javax.swing.JFrame {
                 //Compute Color
                 if (pollutionMatrix[i][j] <= midP) {
                     percentage = (pollutionMatrix[i][j] - minP) / (midP - minP);
-                    pointColor = new Color((int) (255 * percentage), 255, 0, 75);
+                    pointColor = new Color(255, (int) (255 * percentage), 0, 60);
                 } else {
                     percentage = (pollutionMatrix[i][j] - midP) / (maxP - midP);
-                    pointColor = new Color(255, (int) (255 * percentage), 0, 75);
+                    pointColor = new Color((int) (255 * percentage), 255, 0, 60);
                 }
 
                 bGr.setColor(pointColor);

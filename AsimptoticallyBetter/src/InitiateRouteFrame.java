@@ -123,19 +123,7 @@ public class InitiateRouteFrame extends javax.swing.JFrame {
         String destination = jTextField2.getText();
         
         ArrayList<String> waypoints = new ArrayList<String>();
-        if (jTextField4.getText().length() > 0) {
-            waypoints.add(jTextField4.getText());
-        }
-        if (jTextField5.getText().length() > 0) {
-            waypoints.add(jTextField5.getText());
-        }        
-        if (jTextField6.getText().length() > 0) {
-            waypoints.add(jTextField6.getText());
-        }        
-        if (jTextField7.getText().length() > 0) {
-            waypoints.add(jTextField7.getText());
-        }
-        
+
         new MapFrame(source, destination, waypoints).setVisible(true);
         
         this.setVisible(false);
