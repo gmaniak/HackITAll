@@ -113,7 +113,7 @@ public class MapFrame extends javax.swing.JFrame {
                 double lonCoord = minLon + j / 5 * lonRatio;
                 
                 try {
-                    resource = new URL ("https://api.breezometer.com/baqi/?lat="+ latCoord + "&lon=" + lonCoord + "&key=821db3619dc348728b226a330ccf220e ");
+                    resource = new URL ("https://api.breezometer.com/baqi/?lat="+ latCoord + "&lon=" + lonCoord + "&key=25881bf166e54f08b075e090cafbbe64 ");
                 } catch (MalformedURLException ex) {
                     Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
                 }
