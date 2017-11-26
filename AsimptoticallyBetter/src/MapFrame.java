@@ -1,3 +1,5 @@
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -24,6 +26,7 @@ public class MapFrame extends javax.swing.JFrame {
     private double lon;
     private int zoom;
     private double[][] pollutionMatrix;
+    private Image image;
 
     /**
      * Creates new form NewJFrame
@@ -43,6 +46,7 @@ public class MapFrame extends javax.swing.JFrame {
         } catch (IOException ex) {
             Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
         }
+        addPolutionOverlay();
     }
 
     /**
@@ -105,7 +109,7 @@ public class MapFrame extends javax.swing.JFrame {
                 double lonCoord = minLon + j / 5 * lonRatio;
                 
                 try {
-                    resource = new URL ("https://api.breezometer.com/baqi/?lat="+ latCoord + "&lon=" + lonCoord + "&key=141bc4abd9ec4901b9619d9b34325e81 ");
+                    resource = new URL ("https://api.breezometer.com/baqi/?lat="+ latCoord + "&lon=" + lonCoord + "&key=b676f49379844ee7b9856be17bdc5b59 ");
                 } catch (MalformedURLException ex) {
                     Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -346,13 +350,65 @@ public class MapFrame extends javax.swing.JFrame {
             }
 
             try {
-                icon = new ImageIcon(ImageIO.read(url));
+                image = ImageIO.read(url);
             } catch (IOException ex) {
                 Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
             }
+
+            icon = new ImageIcon(image);
             jLabel1.setIcon(icon);
+
         }
     }
+
+
+    void addPolutionOverlay(){
+        BufferedImage img = new BufferedImage(image.getWidth(null),image.getHeight(null),BufferedImage.TYPE_INT_ARGB);
+
+        Graphics2D bGr = img.createGraphics();
+        bGr.drawImage(image, 0, 0, null);
+
+        //Get polution Min and Max
+        double minP,maxP,midP;
+        minP= pollutionMatrix[0][0];
+        maxP = pollutionMatrix[0][0];
+
+
+        for(int i=0; i<pollutionMatrix.length;i++)
+            for(int j = 0; j<pollutionMatrix[i].length;j++) {
+                if (pollutionMatrix[i][j] > maxP)
+                    maxP = pollutionMatrix[i][j];
+                else if (pollutionMatrix[i][j] < minP)
+                    minP = pollutionMatrix[i][j];
+            }
+        midP =  minP + (maxP - minP) / 2;
+
+        int boxHeight,boxWitdh;
+        boxHeight = 1 + image.getHeight(null) / pollutionMatrix.length;
+        boxWitdh = 1 + image.getWidth(null) / pollutionMatrix[0].length;
+
+        for(int i=0; i < pollutionMatrix.length; i++) {
+            for (int j = 0; j < pollutionMatrix[i].length; j++) {
+                Color pointColor;
+                double percentage;
+                //Compute Color
+                if (pollutionMatrix[i][j] <= midP) {
+                    percentage = (pollutionMatrix[i][j] - minP) / (midP - minP);
+                    pointColor = new Color((int) (255 * percentage), 255, 0, 150);
+                } else {
+                    percentage = (pollutionMatrix[i][j] - midP) / (maxP - midP);
+                    pointColor = new Color(255, (int) (255 * percentage), 0, 150);
+                }
+
+                bGr.setColor(pointColor);
+                bGr.fillRect(i * boxWitdh, j * boxHeight, boxWitdh, boxHeight);
+            }
+        }
+
+        bGr.dispose();
+        jLabel1.setIcon(new ImageIcon(img));
+    }
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel jLabel1;
     // End of variables declaration//GEN-END:variables

@@ -98,7 +98,9 @@ public class Polyline {
 
         for(int i=0;i<reverseLatitude.size();i+=6){
 
-            for(int j=i; j < i+6; j++)
+            for(int j=i; j < i+6; j++){
+
+            }
         }
 
 
