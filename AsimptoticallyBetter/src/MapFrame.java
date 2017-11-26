@@ -1,3 +1,5 @@
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.awt.*;
@@ -29,6 +31,7 @@ public class MapFrame extends javax.swing.JFrame {
     private int zoom;
     private double[][] pollutionMatrix;
     private Image image;
+    private ArrayList<Route> routeList;
 
     /**
      * Creates new form NewJFrame
@@ -38,6 +41,8 @@ public class MapFrame extends javax.swing.JFrame {
      * @param waypoints
      */
     public MapFrame(String source, String destination, ArrayList<String> waypoints) {
+        routeList = new ArrayList<>();
+
         initComponents();
         this.source = source;
         this.destination = destination;
@@ -342,7 +347,10 @@ public class MapFrame extends javax.swing.JFrame {
             }
 
             //Compute Route
-            String polyline = getRoute();
+            this.getAllRoutes();
+            //String polyline = getRoute();
+            String polyline = routeList.get(0).getOverview_polyline();
+            System.out.println(polyline);
             
             try {
                 url = new URL("https://maps.googleapis.com/maps/api/staticmap?"
@@ -469,7 +477,7 @@ public class MapFrame extends javax.swing.JFrame {
         return result;
     }
 
-    String getAllRoutes(){
+    void getAllRoutes(){
         URL resource = null;
         BufferedReader in = null;
 
@@ -512,13 +520,41 @@ public class MapFrame extends javax.swing.JFrame {
             Logger.getLogger(MapFrame.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        JSONObject jsonObj = new JSONObject();
+        try {
+            JSONObject jsonObj = new JSONObject(response.toString());
+            JSONArray routes = jsonObj.getJSONArray("routes");
+
+            for(int i=0;i<routes.length();i++){
+                JSONObject buffer = routes.getJSONObject(i);
+
+                int time = buffer.getJSONArray("legs").getJSONObject(0).getJSONObject("duration").getInt("value");
+                String polyline = buffer.getJSONObject("overview_polyline").getString("points");
+
+                Route routeBuffer = new Route(polyline,i,time);
+
+                JSONArray steps = buffer.getJSONArray("legs").getJSONObject(0).getJSONArray("steps");
+                for(int j=0; j<steps.length();j++){
+                    Step stepBuffer;
+                    JSONObject startLocation = steps.getJSONObject(i).getJSONObject("start_location");
+                    JSONObject endLocation = steps.getJSONObject(i).getJSONObject("end_location");
+                    JSONObject distance = steps.getJSONObject(i).getJSONObject("distance");
+                    JSONObject duration = steps.getJSONObject(i).getJSONObject("duration");
 
 
+                    stepBuffer = StepBuilder.create().
+                            withStartLocation(startLocation.getDouble("lat"),startLocation.getDouble("lng")).
+                            withEndLocation(endLocation.getDouble("lat"),endLocation.getDouble("lng")).
+                            withDistance(distance.getDouble("value")).
+                            withTime(duration.getDouble("value")).
+                            build();
+                    routeBuffer.addStep(stepBuffer);
+                }
+                routeList.add(routeBuffer);
+            }
 
-
-
-        return null;
+        }catch (JSONException e){
+            e.printStackTrace();
+        }
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
